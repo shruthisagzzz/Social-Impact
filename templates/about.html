@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}About{% endblock %}
+
+{% block content %}
+<div class="row mb-5">
+    <div class="col-lg-8 mx-auto">
+        <h1 class="text-center mb-4">About Social Impact Evaluator</h1>
+        <div class="text-center mb-5">
+            <img src="{{ url_for('static', filename='images/about.svg') }}" alt="About Us" class="img-fluid rounded" style="max-height: 300px;">
+        </div>
+        
+        <div class="mb-5">
+            <h2 class="mb-3">Our Mission</h2>
+            <p class="lead">To empower organizations to measure, understand, and enhance their social impact through data-driven insights and AI-powered analysis.</p>
+            <p>In today's world, corporate social responsibility is no longer optional—it's essential. Companies are expected to contribute positively to society, but measuring that impact has traditionally been challenging. Our platform solves this problem by providing comprehensive, objective assessments of social initiatives.</p>
+        </div>
+        
+        <div class="mb-5">
+            <h2 class="mb-3">How It Works</h2>
+            <p>Our advanced machine learning models analyze your social initiatives across multiple dimensions:</p>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-leaf text-success me-2"></i> Sustainability</h5>
+                            <p class="card-text">Measures the environmental impact and long-term viability of your initiatives.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-users text-info me-2"></i> Community Engagement</h5>
+                            <p class="card-text">Evaluates how effectively your programs involve and benefit local communities.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-balance-scale text-warning me-2"></i> Ethical Business</h5>
+                            <p class="card-text">Assesses the ethical dimensions and fairness of your initiatives.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-bullhorn text-primary me-2"></i> Public Engagement</h5>
+                            <p class="card-text">Measures how well you communicate and engage the public with your initiatives.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mb-5">
+            <h2 class="mb-3">Our Technology</h2>
+            <p>We use state-of-the-art natural language processing and machine learning models trained on thousands of social impact initiatives. Our system can understand the nuances of your projects and provide accurate assessments across multiple dimensions.</p>
+            <p>The platform leverages transformer-based models like BERT to analyze project descriptions and generate comprehensive impact scores. This allows us to provide insights that go beyond simple metrics and capture the true societal value of your initiatives.</p>
+        </div>
+        
+        <div class="mb-5">
+            <h2 class="mb-3">Who Can Benefit</h2>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <div class="card text-center h-100">
+                        <div class="card-body">
+                            <i class="fas fa-building fa-3x text-primary mb-3"></i>
+                            <h5>Corporations</h5>
+                            <p>Measure and improve your CSR initiatives</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card text-center h-100">
+                        <div class="card-body">
+                            <i class="fas fa-hand-holding-heart fa-3x text-danger mb-3"></i>
+                            <h5>Non-Profits</h5>
+                            <p>Evaluate the effectiveness of your programs</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <div class="card text-center h-100">
+                        <div class="card-body">
+                            <i class="fas fa-university fa-3x text-success mb-3"></i>
+                            <h5>Government Agencies</h5>
+                            <p>Assess public initiatives and policies</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center">
+            <h2 class="mb-4">Ready to Get Started?</h2>
+            <p class="lead mb-4">Join organizations worldwide that are using our platform to enhance their social impact.</p>
+            {% if 'user_id' not in session %}
+            <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">Create Your Account</a>
+            {% else %}
+            <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg">Evaluate Your Impact</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

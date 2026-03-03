@@ -1,0 +1,1061 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .score-card {
+        transition: transform 0.3s;
+    }
+    .score-card:hover {
+        transform: translateY(-5px);
+    }
+    .progress {
+        height: 20px;
+    }
+    #results-chart {
+        max-height: 300px;
+    }
+    .file-upload-area {
+        border: 2px dashed #dee2e6;
+        border-radius: 5px;
+        padding: 20px;
+        text-align: center;
+        background-color: #f8f9fa;
+        cursor: pointer;
+    }
+    .file-upload-area:hover {
+        background-color: #e9ecef;
+    }
+    .analysis-result {
+        display: none;
+    }
+    .grant-section {
+        background: linear-gradient(135deg, #ffd700, #ffed4e);
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .feature-icon {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Welcome, {{ username }}!</h1>
+
+<!-- Quick Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ predictions|length }}</h4>
+                        <p>Impact Evaluations</p>
+                    </div>
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ file_analyses|length }}</h4>
+                        <p>Document Analyses</p>
+                    </div>
+                    <div class="feature-icon">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ grant_proposals|length }}</h4>
+                        <p>Grant Proposals</p>
+                    </div>
+                    <div class="feature-icon">
+                        <i class="fas fa-hand-holding-usd"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>
+                            {% if predictions %}
+                            {{ "%.1f" | format(predictions[0].total_impact_score) }}
+                            {% else %}
+                            0.0
+                            {% endif %}
+                        </h4>
+                        <p>Avg Impact Score</p>
+                    </div>
+                    <div class="feature-icon">
+                        <i class="fas fa-star"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Document Analysis Section -->
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-info text-white">
+                <h3 class="card-title mb-0"><i class="fas fa-file-alt me-2"></i>Analyze Project Proposal Document</h3>
+            </div>
+            <div class="card-body">
+                <form id="file-analysis-form" enctype="multipart/form-data">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="domain-type" class="form-label">Domain Type</label>
+                            <select class="form-select" id="domain-type" name="domain_type" required>
+                                <option value="">Select a domain type</option>
+                                {% for project_type in project_types %}
+                                <option value="{{ project_type }}">{{ project_type }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="file" class="form-label">Project Proposal Document</label>
+                            <div class="file-upload-area" id="file-upload-area">
+                                <i class="fas fa-cloud-upload-alt fa-3x mb-2"></i>
+                                <p class="mb-1">Click to upload or drag and drop</p>
+                                <p class="small text-muted">PDF, DOC, DOCX, or TXT files (Max 5MB)</p>
+                                <input type="file" class="d-none" id="file" name="file" accept=".txt,.pdf,.doc,.docx" required>
+                                <div id="file-name" class="fw-bold mt-2"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-info btn-lg" id="analyze-btn">
+                            <i class="fas fa-search me-2"></i>Analyze Document
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- File Analysis Results Section -->
+<div class="analysis-result mt-4" id="file-results-section">
+    <h2 class="mb-4">Document Analysis Results</h2>
+    <div class="card shadow">
+        <div class="card-header bg-success text-white">
+            <h3 class="card-title mb-0">Analysis Summary</h3>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h5>Impact Score</h5>
+                            <h1 id="file-impact-score" class="display-3 text-success">0</h1>
+                            <p class="text-muted">out of 100</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h5>Grant Recommendation</h5>
+                            <h2 id="file-grant-recommendation" class="text-primary">$0</h2>
+                            <p id="file-funding-recommendation" class="text-muted">Funding breakdown</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mb-3">
+                <h4>Detailed Analysis</h4>
+                <div id="file-detailed-analysis" class="p-3 bg-light rounded">
+                    <!-- Analysis content will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Grant Proposal Generator Section -->
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-warning text-dark">
+                <h3 class="card-title mb-0"><i class="fas fa-hand-holding-usd me-2"></i>Generate Grant Proposal</h3>
+            </div>
+            <div class="card-body">
+                <form id="grant-proposal-form">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="project-title" class="form-label">Project Title</label>
+                            <input type="text" class="form-control" id="project-title" name="project_title" required placeholder="Enter your project title">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="grant-domain-type" class="form-label">Domain Type</label>
+                            <select class="form-select" id="grant-domain-type" name="domain_type" required>
+                                <option value="">Select a domain type</option>
+                                {% for project_type in project_types %}
+                                <option value="{{ project_type }}">{{ project_type }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="requested-amount" class="form-label">Requested Amount ($)</label>
+                            <input type="number" class="form-control" id="requested-amount" name="requested_amount" min="1000" step="1000" required placeholder="Enter amount in USD">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="project-description" class="form-label">Project Description</label>
+                            <textarea class="form-control" id="project-description" name="project_description" rows="3" required placeholder="Describe your project in detail..."></textarea>
+                        </div>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-warning btn-lg">
+                            <i class="fas fa-magic me-2"></i>Generate Grant Proposal
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Grant Proposal Results Section -->
+<div id="grant-results-section" class="d-none mt-4">
+    <h2 class="mb-4">Grant Proposal Generated</h2>
+    <div class="card shadow">
+        <div class="card-header bg-success text-white">
+            <h3 class="card-title mb-0">Proposal Summary</h3>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h5>Impact Score</h5>
+                            <h1 id="grant-impact-score" class="display-3 text-success">0</h1>
+                            <p class="text-muted">out of 100</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h5>Requested Amount</h5>
+                            <h2 id="grant-requested-amount" class="text-primary">$0</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card bg-light">
+                        <div class="card-body text-center">
+                            <h5>Recommended Grant</h5>
+                            <h2 id="grant-recommended-amount" class="text-success">$0</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h4>Executive Summary</h4>
+                    <div id="grant-executive-summary" class="p-3 bg-light rounded mb-3">
+                        <!-- Executive summary will be inserted here -->
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h4>Project Objectives</h4>
+                    <div id="grant-objectives" class="p-3 bg-light rounded mb-3">
+                        <!-- Objectives will be inserted here -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h4>Methodology</h4>
+                    <div id="grant-methodology" class="p-3 bg-light rounded mb-3">
+                        <!-- Methodology will be inserted here -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h4>Budget Breakdown</h4>
+                    <div id="grant-budget" class="p-3 bg-light rounded mb-3">
+                        <!-- Budget will be inserted here -->
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h4>Timeline</h4>
+                    <div id="grant-timeline" class="p-3 bg-light rounded mb-3">
+                        <!-- Timeline will be inserted here -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12">
+                    <h4>Expected Outcomes</h4>
+                    <div id="grant-outcomes" class="p-3 bg-light rounded mb-3">
+                        <!-- Outcomes will be inserted here -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <button id="download-proposal-btn" class="btn btn-primary btn-lg">
+                    <i class="fas fa-download me-2"></i>Download Proposal Document
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Impact Evaluation Section -->
+<div class="row mb-5 mt-5">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h3 class="card-title mb-0"><i class="fas fa-chart-line me-2"></i>Evaluate Social Impact</h3>
+            </div>
+            <div class="card-body">
+                <form id="prediction-form">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="company" class="form-label">Company</label>
+                            <select class="form-select" id="company" required>
+                                <option value="">Select a company</option>
+                                {% for company in companies %}
+                                <option value="{{ company }}">{{ company }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="project-type" class="form-label">Project Type</label>
+                            <select class="form-select" id="project-type" required>
+                                <option value="">Select a project type</option>
+                                {% for project_type in project_types %}
+                                <option value="{{ project_type }}">{{ project_type }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Project Description (Optional)</label>
+                        <textarea class="form-control" id="description" rows="3" placeholder="Describe your social initiative for more accurate assessment..."></textarea>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-chart-line me-2"></i>Evaluate Impact
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow">
+            <div class="card-header bg-info text-white">
+                <h3 class="card-title mb-0">Quick Actions</h3>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="#file-analysis-form" class="btn btn-info mb-2">
+                        <i class="fas fa-file-alt me-2"></i>Analyze Document
+                    </a>
+                    <a href="#grant-proposal-form" class="btn btn-warning mb-2">
+                        <i class="fas fa-hand-holding-usd me-2"></i>Generate Proposal
+                    </a>
+                    <a href="#prediction-form" class="btn btn-primary mb-2">
+                        <i class="fas fa-chart-line me-2"></i>Evaluate Impact
+                    </a>
+                </div>
+                <hr>
+                <div class="text-center">
+                    <h6>Recent Activity</h6>
+                    <p class="small text-muted">
+                        {% if predictions or file_analyses or grant_proposals %}
+                        {{ (predictions|length + file_analyses|length + grant_proposals|length) }} total activities
+                        {% else %}
+                        No activities yet
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Impact Evaluation Results Section -->
+<div id="results-section" class="d-none">
+    <h2 class="mb-4">Evaluation Results</h2>
+    
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="card-title mb-0">Score Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="results-chart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <div class="card score-card bg-success text-white text-center">
+                        <div class="card-body">
+                            <h5>Sustainability Score</h5>
+                            <h2 id="sustainability-score">0.0</h2>
+                            <div class="progress bg-white bg-opacity-25 mt-2">
+                                <div id="sustainability-progress" class="progress-bar bg-white" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="card score-card bg-info text-white text-center">
+                        <div class="card-body">
+                            <h5>Community Engagement</h5>
+                            <h2 id="community-score">0.0</h2>
+                            <div class="progress bg-white bg-opacity-25 mt-2">
+                                <div id="community-progress" class="progress-bar bg-white" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="card score-card bg-warning text-dark text-center">
+                        <div class="card-body">
+                            <h5>Ethical Business</h5>
+                            <h2 id="ethical-score">0.0</h2>
+                            <div class="progress bg-dark bg-opacity-25 mt-2">
+                                <div id="ethical-progress" class="progress-bar bg-dark" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="card score-card bg-primary text-white text-center">
+                        <div class="card-body">
+                            <h5>Public Engagement</h5>
+                            <h2 id="public-score">0.0</h2>
+                            <div class="progress bg-white bg-opacity-25 mt-2">
+                                <div id="public-progress" class="progress-bar bg-white" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card bg-dark text-white text-center">
+                <div class="card-body">
+                    <h3>Total Impact Score</h3>
+                    <h1 id="total-score" class="display-1">0.0</h1>
+                    <div class="progress bg-white bg-opacity-25 mt-2 mx-auto" style="max-width: 400px;">
+                        <div id="total-progress" class="progress-bar bg-success" role="progressbar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- History Sections -->
+<div class="row mt-5">
+    <!-- Document Analyses History -->
+    {% if file_analyses %}
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">Recent Document Analyses</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Filename</th>
+                                <th>Score</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for analysis in file_analyses[:3] %}
+                            <tr>
+                                <td>{{ analysis.created_at[:10] }}</td>
+                                <td class="small">{{ analysis.filename[:20] }}...</td>
+                                <td>{{ "%.1f" | format(analysis.impact_score) }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-info view-analysis" 
+                                            data-filename="{{ analysis.filename }}" 
+                                            data-domain="{{ analysis.domain_type }}"
+                                            data-impact="{{ analysis.impact_score }}"
+                                            data-grant="{{ analysis.grant_recommendation }}"
+                                            data-funding="{{ analysis.funding_recommendation }}"
+                                            data-analysis="{{ analysis.gemini_analysis }}">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Grant Proposals History -->
+    {% if grant_proposals %}
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="card-title mb-0">Recent Grant Proposals</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Project</th>
+                                <th>Amount</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for proposal in grant_proposals[:3] %}
+                            <tr>
+                                <td>{{ proposal.created_at[:10] }}</td>
+                                <td class="small">{{ proposal.project_title[:20] }}...</td>
+                                <td>${{ "{:,.0f}".format(proposal.grant_amount) }}</td>
+                                <td>
+                                    <a href="{{ url_for('download_proposal', proposal_id=proposal.id) }}" class="btn btn-sm btn-success">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Full History Tables -->
+{% if file_analyses %}
+<div class="mt-5">
+    <h2 class="mb-4">Document Analysis History</h2>
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Filename</th>
+                    <th>Domain Type</th>
+                    <th>Impact Score</th>
+                    <th>Grant Recommended</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for analysis in file_analyses %}
+                <tr>
+                    <td>{{ analysis.created_at[:10] }}</td>
+                    <td>{{ analysis.filename }}</td>
+                    <td>{{ analysis.domain_type }}</td>
+                    <td>{{ "%.1f" | format(analysis.impact_score) }}</td>
+                    <td>${{ "{:,.0f}".format(analysis.grant_recommendation) }}</td>
+                    <td>
+                        <button class="btn btn-sm btn-info view-analysis" 
+                                data-filename="{{ analysis.filename }}" 
+                                data-domain="{{ analysis.domain_type }}"
+                                data-impact="{{ analysis.impact_score }}"
+                                data-grant="{{ analysis.grant_recommendation }}"
+                                data-funding="{{ analysis.funding_recommendation }}"
+                                data-analysis="{{ analysis.gemini_analysis }}">
+                            <i class="fas fa-eye me-1"></i>View Details
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if grant_proposals %}
+<div class="mt-5">
+    <h2 class="mb-4">Grant Proposal History</h2>
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Project Title</th>
+                    <th>Domain</th>
+                    <th>Requested</th>
+                    <th>Recommended</th>
+                    <th>Impact Score</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for proposal in grant_proposals %}
+                <tr>
+                    <td>{{ proposal.created_at[:10] }}</td>
+                    <td>{{ proposal.project_title }}</td>
+                    <td>{{ proposal.domain_type }}</td>
+                    <td>${{ "{:,.0f}".format(proposal.requested_amount) }}</td>
+                    <td>${{ "{:,.0f}".format(proposal.grant_amount) }}</td>
+                    <td>{{ "%.1f" | format(proposal.impact_score) }}</td>
+                    <td>
+                        <a href="{{ url_for('download_proposal', proposal_id=proposal.id) }}" class="btn btn-sm btn-success">
+                            <i class="fas fa-download me-1"></i>Download
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if predictions %}
+<div class="mt-5">
+    <h2 class="mb-4">Impact Evaluation History</h2>
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Company</th>
+                    <th>Project Type</th>
+                    <th>Sustainability</th>
+                    <th>Community</th>
+                    <th>Ethical</th>
+                    <th>Public</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for prediction in predictions %}
+                <tr>
+                    <td>{{ prediction.created_at[:10] }}</td>
+                    <td>{{ prediction.company }}</td>
+                    <td>{{ prediction.project_type }}</td>
+                    <td>{{ "%.1f" | format(prediction.sustainability_score) }}</td>
+                    <td>{{ "%.1f" | format(prediction.community_engagement_score) }}</td>
+                    <td>{{ "%.1f" | format(prediction.ethical_business_score) }}</td>
+                    <td>{{ "%.1f" | format(prediction.public_engagement_score) }}</td>
+                    <td><strong>{{ "%.1f" | format(prediction.total_impact_score) }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Modal for viewing analysis details -->
+<div class="modal fade" id="analysisModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Analysis Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <h6>Filename:</h6>
+                    <p id="modal-filename" class="fw-bold"></p>
+                </div>
+                <div class="mb-3">
+                    <h6>Domain Type:</h6>
+                    <p id="modal-domain"></p>
+                </div>
+                <div class="mb-3">
+                    <h6>Impact Score:</h6>
+                    <p id="modal-impact" class="fw-bold fs-4"></p>
+                </div>
+                <div class="mb-3">
+                    <h6>Grant Recommendation:</h6>
+                    <p id="modal-grant" class="fw-bold fs-5"></p>
+                </div>
+                <div class="mb-3">
+                    <h6>Funding Recommendation:</h6>
+                    <p id="modal-funding"></p>
+                </div>
+                <div class="mb-3">
+                    <h6>Detailed Analysis:</h6>
+                    <div id="modal-analysis" class="p-3 bg-light rounded"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    let resultsChart = null;
+    let currentProposalId = null;
+    
+    // File upload handling
+    document.getElementById('file-upload-area').addEventListener('click', function() {
+        document.getElementById('file').click();
+    });
+    
+    document.getElementById('file').addEventListener('change', function(e) {
+        if (this.files.length > 0) {
+            document.getElementById('file-name').textContent = this.files[0].name;
+        }
+    });
+    
+    // Drag and drop functionality
+    const fileUploadArea = document.getElementById('file-upload-area');
+    
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        fileUploadArea.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+        fileUploadArea.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        fileUploadArea.addEventListener(eventName, unhighlight, false);
+    });
+    
+    function highlight() {
+        fileUploadArea.classList.add('bg-light');
+    }
+    
+    function unhighlight() {
+        fileUploadArea.classList.remove('bg-light');
+    }
+    
+    fileUploadArea.addEventListener('drop', handleDrop, false);
+    
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        document.getElementById('file').files = files;
+        document.getElementById('file-name').textContent = files[0].name;
+    }
+    
+    // File analysis form handling
+    document.getElementById('file-analysis-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const submitBtn = this.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Analyzing...';
+        
+        try {
+            const response = await fetch('/analyze-file', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                // Update results
+                document.getElementById('file-impact-score').textContent = data.impact_score.toFixed(1);
+                document.getElementById('file-grant-recommendation').textContent = '$' + data.grant_recommendation.toLocaleString();
+                document.getElementById('file-funding-recommendation').textContent = data.funding_recommendation;
+                document.getElementById('file-detailed-analysis').innerHTML = '<p>' + data.analysis.replace(/\n/g, '<br>') + '</p>';
+                
+                // Show results
+                document.getElementById('file-results-section').style.display = 'block';
+                
+                // Scroll to results
+                document.getElementById('file-results-section').scrollIntoView({ behavior: 'smooth' });
+                
+                // Reload page after 3 seconds to show updated history
+                setTimeout(() => {
+                    window.location.reload();
+                }, 3000);
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch (error) {
+            alert('An error occurred: ' + error.message);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-search me-2"></i>Analyze Document';
+        }
+    });
+    
+// Grant proposal form handling
+document.getElementById('grant-proposal-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        project_title: document.getElementById('project-title').value,
+        domain_type: document.getElementById('grant-domain-type').value,
+        requested_amount: parseFloat(document.getElementById('requested-amount').value),
+        project_description: document.getElementById('project-description').value
+    };
+    
+    // Validation
+    if (!formData.project_title || !formData.domain_type || !formData.requested_amount || formData.requested_amount < 1000) {
+        alert('Please fill all fields correctly. Requested amount must be at least $1000.');
+        return;
+    }
+    
+    const submitBtn = this.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Generating...';
+    
+    try {
+        const response = await fetch('/generate-grant-proposal', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            // Store proposal ID for download
+            currentProposalId = data.proposal_id;
+            
+            // Update results
+            document.getElementById('grant-impact-score').textContent = data.impact_score.toFixed(1);
+            document.getElementById('grant-requested-amount').textContent = '$' + data.requested_amount.toLocaleString();
+            document.getElementById('grant-recommended-amount').textContent = '$' + data.grant_amount.toLocaleString();
+            
+            document.getElementById('grant-executive-summary').innerHTML = '<p>' + data.executive_summary + '</p>';
+            
+            // Handle objectives (now it's always a string)
+            let objectivesHtml = '';
+            if (data.objectives.includes('\n')) {
+                // If objectives have newlines, create list items
+                objectivesHtml = '<ul>';
+                data.objectives.split('\n').forEach(obj => {
+                    if (obj.trim()) {
+                        objectivesHtml += `<li>${obj.trim()}</li>`;
+                    }
+                });
+                objectivesHtml += '</ul>';
+            } else {
+                objectivesHtml = '<p>' + data.objectives + '</p>';
+            }
+            document.getElementById('grant-objectives').innerHTML = objectivesHtml;
+            
+            document.getElementById('grant-methodology').innerHTML = '<p>' + data.methodology.replace(/\n/g, '<br>') + '</p>';
+            document.getElementById('grant-budget').innerHTML = '<p>' + data.budget_breakdown.replace(/\n/g, '<br>') + '</p>';
+            document.getElementById('grant-timeline').innerHTML = '<p>' + data.timeline.replace(/\n/g, '<br>') + '</p>';
+            document.getElementById('grant-outcomes').innerHTML = '<p>' + data.expected_outcomes.replace(/\n/g, '<br>') + '</p>';
+            
+            // Set download button
+            document.getElementById('download-proposal-btn').onclick = function() {
+                window.location.href = `/download-proposal/${currentProposalId}`;
+            };
+            
+            // Show results
+            document.getElementById('grant-results-section').classList.remove('d-none');
+            
+            // Scroll to results
+            document.getElementById('grant-results-section').scrollIntoView({ behavior: 'smooth' });
+            
+            // Reload page after 5 seconds to show updated history
+            setTimeout(() => {
+                window.location.reload();
+            }, 5000);
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        alert('An error occurred: ' + error.message);
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-magic me-2"></i>Generate Grant Proposal';
+    }
+});
+    
+    // View analysis details in modal
+    document.querySelectorAll('.view-analysis').forEach(button => {
+        button.addEventListener('click', function() {
+            document.getElementById('modal-filename').textContent = this.getAttribute('data-filename');
+            document.getElementById('modal-domain').textContent = this.getAttribute('data-domain');
+            document.getElementById('modal-impact').textContent = this.getAttribute('data-impact') + '/100';
+            document.getElementById('modal-grant').textContent = '$' + Number(this.getAttribute('data-grant')).toLocaleString();
+            document.getElementById('modal-funding').textContent = this.getAttribute('data-funding');
+            document.getElementById('modal-analysis').innerHTML = '<p>' + this.getAttribute('data-analysis').replace(/\n/g, '<br>') + '</p>';
+            
+            const modal = new bootstrap.Modal(document.getElementById('analysisModal'));
+            modal.show();
+        });
+    });
+    
+    // Prediction form handling
+    document.getElementById('prediction-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const company = document.getElementById('company').value;
+        const projectType = document.getElementById('project-type').value;
+        const description = document.getElementById('description').value;
+        
+        const submitBtn = this.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Evaluating...';
+        
+        try {
+            const response = await fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    company: company,
+                    project_type: projectType,
+                    description: description
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                // Update scores
+                document.getElementById('sustainability-score').textContent = data.scores['Sustainability Score'].toFixed(1);
+                document.getElementById('community-score').textContent = data.scores['Community Engagement Score'].toFixed(1);
+                document.getElementById('ethical-score').textContent = data.scores['Ethical Business Score'].toFixed(1);
+                document.getElementById('public-score').textContent = data.scores['Public Engagement Score'].toFixed(1);
+                document.getElementById('total-score').textContent = data.scores['Total Impact Score'].toFixed(1);
+                
+                // Update progress bars
+                document.getElementById('sustainability-progress').style.width = data.scores['Sustainability Score'] + '%';
+                document.getElementById('community-progress').style.width = data.scores['Community Engagement Score'] + '%';
+                document.getElementById('ethical-progress').style.width = data.scores['Ethical Business Score'] + '%';
+                document.getElementById('public-progress').style.width = data.scores['Public Engagement Score'] + '%';
+                document.getElementById('total-progress').style.width = data.scores['Total Impact Score'] + '%';
+                
+                // Update chart
+                updateChart(data.scores);
+                
+                // Show results
+                document.getElementById('results-section').classList.remove('d-none');
+                
+                // Scroll to results
+                document.getElementById('results-section').scrollIntoView({ behavior: 'smooth' });
+                
+                // Reload page after 3 seconds to show updated history
+                setTimeout(() => {
+                    window.location.reload();
+                }, 3000);
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch (error) {
+            alert('An error occurred: ' + error.message);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-chart-line me-2"></i>Evaluate Impact';
+        }
+    });
+    
+    function updateChart(scores) {
+        const ctx = document.getElementById('results-chart').getContext('2d');
+        
+        // Destroy previous chart if it exists
+        if (resultsChart) {
+            resultsChart.destroy();
+        }
+        
+        // Create new chart
+        resultsChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: ['Sustainability', 'Community Engagement', 'Ethical Business', 'Public Engagement'],
+                datasets: [{
+                    data: [
+                        scores['Sustainability Score'],
+                        scores['Community Engagement Score'],
+                        scores['Ethical Business Score'],
+                        scores['Public Engagement Score']
+                    ],
+                    backgroundColor: [
+                        'rgba(40, 167, 69, 0.8)',  // Green
+                        'rgba(23, 162, 184, 0.8)', // Teal
+                        'rgba(255, 193, 7, 0.8)',  // Yellow
+                        'rgba(0, 123, 255, 0.8)'   // Blue
+                    ],
+                    borderColor: [
+                        'rgba(40, 167, 69, 1)',
+                        'rgba(23, 162, 184, 1)',
+                        'rgba(255, 193, 7, 1)',
+                        'rgba(0, 123, 255, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + context.raw.toFixed(1);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

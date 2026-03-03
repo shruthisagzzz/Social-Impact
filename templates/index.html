@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<div class="hero-section bg-primary text-white py-5 mb-5 rounded">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h1 class="display-4 fw-bold">Measure Your Social Impact</h1>
+                <p class="lead">Evaluate and improve your company's social initiatives with our AI-powered impact assessment platform.</p>
+                {% if 'user_id' not in session %}
+                <div class="mt-4">
+                    <a href="{{ url_for('register') }}" class="btn btn-light btn-lg me-3">Get Started</a>
+                    <a href="{{ url_for('about') }}" class="btn btn-outline-light btn-lg">Learn More</a>
+                </div>
+                {% else %}
+                <div class="mt-4">
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-light btn-lg">Go to Dashboard</a>
+                </div>
+                {% endif %}
+            </div>
+            <div class="col-md-6 text-center">
+                <img src="{{ url_for('static', filename='images/impact.svg') }}" alt="Social Impact" class="img-fluid" style="max-height: 300px;">
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-5">
+    <div class="col-md-4">
+        <div class="card h-100 border-0 shadow">
+            <div class="card-body text-center">
+                <i class="fas fa-chart-line fa-3x text-primary mb-3"></i>
+                <h3 class="card-title">AI-Powered Analysis</h3>
+                <p class="card-text">Our advanced machine learning models evaluate your social initiatives across multiple dimensions.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 border-0 shadow">
+            <div class="card-body text-center">
+                <i class="fas fa-hand-holding-heart fa-3x text-primary mb-3"></i>
+                <h3 class="card-title">Comprehensive Metrics</h3>
+                <p class="card-text">Measure sustainability, community engagement, ethical practices, and public perception.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 border-0 shadow">
+            <div class="card-body text-center">
+                <i class="fas fa-lightbulb fa-3x text-primary mb-3"></i>
+                <h3 class="card-title">Actionable Insights</h3>
+                <p class="card-text">Get detailed recommendations to enhance your social impact and corporate responsibility.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row align-items-center mb-5">
+    <div class="col-md-6">
+        <h2>How It Works</h2>
+        <div class="d-flex mb-3">
+            <div class="me-4">
+                <span class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">1</span>
+            </div>
+            <div>
+                <h4>Select Company & Project</h4>
+                <p>Choose from our extensive database of companies and project types.</p>
+            </div>
+        </div>
+        <div class="d-flex mb-3">
+            <div class="me-4">
+                <span class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">2</span>
+            </div>
+            <div>
+                <h4>Provide Details</h4>
+                <p>Add a description of your social initiative for more accurate assessment.</p>
+            </div>
+        </div>
+        <div class="d-flex">
+            <div class="me-4">
+                <span class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">3</span>
+            </div>
+            <div>
+                <h4>Get Your Impact Score</h4>
+                <p>Receive comprehensive scores across multiple impact dimensions.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 text-center">
+        <img src="{{ url_for('static', filename='images/process.svg') }}" alt="Process" class="img-fluid">
+    </div>
+</div>
+
+<div class="bg-light py-5 rounded">
+    <div class="container text-center">
+        <h2 class="mb-4">Ready to Measure Your Impact?</h2>
+        <p class="lead mb-4">Join companies worldwide that are using our platform to enhance their social responsibility initiatives.</p>
+        {% if 'user_id' not in session %}
+        <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg">Create Your Account</a>
+        {% else %}
+        <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg">Make a Prediction</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

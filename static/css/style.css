@@ -1,0 +1,81 @@
+:root {
+    --primary: #0d6efd;
+    --secondary: #6c757d;
+    --success: #198754;
+    --info: #0dcaf0;
+    --warning: #ffc107;
+    --danger: #dc3545;
+    --light: #f8f9fa;
+    --dark: #212529;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f5f7fb;
+}
+
+.hero-section {
+    background: linear-gradient(135deg, var(--primary) 0%, #0043a8 100%);
+    border-radius: 15px;
+}
+
+.card {
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+.navbar-brand {
+    font-weight: 700;
+}
+
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.progress {
+    border-radius: 10px;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: var(--secondary);
+}
+
+.alert {
+    border-radius: 10px;
+    border: none;
+}
+
+/* Custom animations */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+/* Score cards styling */
+.score-card {
+    border: none;
+    border-radius: 12px;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.score-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Footer styling */
+footer {
+    margin-top: auto;
+}
