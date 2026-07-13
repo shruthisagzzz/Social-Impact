@@ -407,7 +407,15 @@ screenshots/
 ├── report.png
 ```
 
-Add screenshots here.
+<img width="1919" height="979" alt="image" src="https://github.com/user-attachments/assets/1c2342a1-6b84-4dc6-9d3a-10ce40292223" />
+<img width="1639" height="954" alt="image" src="https://github.com/user-attachments/assets/133d7ae3-2953-4488-a61f-da553f7886a1" />
+<img width="1643" height="712" alt="image" src="https://github.com/user-attachments/assets/e61a0e26-db41-4d04-99c4-42033cbef9f0" />
+<img width="1779" height="937" alt="image" src="https://github.com/user-attachments/assets/a628da0e-c689-4b7d-9907-8424e06c9468" />
+<img width="1678" height="938" alt="image" src="https://github.com/user-attachments/assets/2aff871d-0c45-4543-86bf-0136d06005cd" />
+
+
+
+
 
 ---
 
