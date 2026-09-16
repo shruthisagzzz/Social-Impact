@@ -1,0 +1,68 @@
+name: Daily README activity
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Update daily activity marker
+        shell: python
+        id: cadence
+        run: |
+          from datetime import datetime, timezone
+          import os
+          from pathlib import Path
+
+          output = Path(os.environ["GITHUB_OUTPUT"])
+          anchor = datetime(2026, 9, 16, tzinfo=timezone.utc).date()
+          today = datetime.now(timezone.utc).date()
+          if (today - anchor).days % 2:
+              with output.open("a", encoding="utf-8") as handle:
+                  print("update=false", file=handle)
+              print("Skipping README update on the alternating day.")
+              raise SystemExit(0)
+
+          readme = Path("README.md")
+          content = readme.read_text(encoding="utf-8")
+          start = "<!-- DAILY_ACTIVITY_START -->"
+          end = "<!-- DAILY_ACTIVITY_END -->"
+          timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+          replacement = (
+              f"{start}\n"
+              f"_Last automated project update: {timestamp} (UTC)._\n"
+              f"{end}"
+          )
+
+          if start not in content or end not in content:
+              raise RuntimeError("README.md is missing the daily activity markers")
+
+          before, remainder = content.split(start, 1)
+          _, after = remainder.split(end, 1)
+          readme.write_text(before + replacement + after, encoding="utf-8")
+          with output.open("a", encoding="utf-8") as handle:
+              print("update=true", file=handle)
+
+      - name: Commit README update
+        if: steps.cadence.outputs.update == 'true'
+        shell: bash
+        run: |
+          if git diff --quiet -- README.md; then
+            echo "README.md is already up to date."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "chore: update daily README activity"
+          git push
